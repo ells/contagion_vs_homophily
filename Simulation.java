@@ -3,7 +3,7 @@ package com.salathegroup.contagion_vs_homophily;
 import edu.uci.ics.jung.algorithms.cluster.WeakComponentClusterer;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.SparseGraph;
-
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.Set;
 
@@ -18,6 +18,11 @@ public class Simulation {
     Person[] randomPeople;
     Connection[] randomConnections;
 
+    ArrayList<Person> nonAdopters = new ArrayList<Person>();
+    ArrayList<Person> tempAdopters = new ArrayList<Person>();
+    ArrayList<Person> adopters = new ArrayList<Person>();
+
+
     boolean opinionIsSpreading = false;
     int socialTimestep = 0;
     int numberOfAdopters = 0;
@@ -30,11 +35,8 @@ public class Simulation {
     public void run() {
         this.initGraph();
         this.runSocialTimesteps(this.assortedG, this.assortedPeople, this.assortedConnections);
-        System.out.println(this.socialTimestep + "//" + this.numberOfAdopters);
-
         this.generateControlGraph(this.assortedG);
         this.runSocialTimesteps(this.randomG, this.randomPeople, this.randomConnections);
-        System.out.println(this.socialTimestep + "//" + this.numberOfAdopters);
     }
 
     private void initGraph() {
@@ -50,6 +52,7 @@ public class Simulation {
             for (int i = 0; i < numberOfPeople; i++) {
                 Person person = new Person(Integer.toString(i), this.random.nextInt(ySpan));
                 this.assortedPeople[i] = person;
+                this.nonAdopters.add(person);
                 this.assortedG.addVertex(person);
             }
             for (int i = 0; i < numberOfPeople; i++) {
@@ -67,9 +70,7 @@ public class Simulation {
             for (Connection edge:this.assortedG.getEdges()) {
                 if (this.random.nextDouble() < rewireProbability) {
                     Person source = this.assortedG.getEndpoints(edge).getFirst();
-                    Person destination = this.assortedG.getEndpoints(edge).getSecond();
                     int sourceY = source.getY();
-                    int destinationY = source.getY();
                     Person newDestination;
                     do {
                         newDestination = this.assortedPeople[this.random.nextInt(numberOfPeople)];
@@ -103,6 +104,7 @@ public class Simulation {
         double endThreshold = SimulationSettings.getInstance().getEndThreshold();
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         while(this.numberOfAdopters < numberOfPeople*endThreshold) {
+            //System.out.println("@t=" + this.socialTimestep + ":  " + this.nonAdopters.size() + " --> " + this.adopters.size());
             if (this.socialTimestep==0) this.opinionIsSpreading = true;
             if (this.opinionIsSpreading) {
                 this.generalExposure(g, people, connections);
@@ -113,7 +115,6 @@ public class Simulation {
         }
         this.opinionIsSpreading = false;
     }
-
 
     private void generalExposure(Graph<Person, Connection> g, Person[] people, Connection[] connections) {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
@@ -135,9 +136,8 @@ public class Simulation {
     private void socialContagion(Graph<Person, Connection> g, Person[] people, Connection[] connections) {
         double omega = SimulationSettings.getInstance().getOmega();
         int T = SimulationSettings.getInstance().getT();
-        for (Person person:people) {
-            if (omega == 0) continue;
-            if (person.getAdopted() == false) continue;
+        if (omega == 0) return;
+        for (Person person:this.adopters) {
             for (Person neighbour:g.getNeighbors(person)) {
                 if (neighbour.getAdopted()==false) {
                     if (person.getExposureList().contains(neighbour.getIntID())) continue;
@@ -154,24 +154,28 @@ public class Simulation {
     private void adoptionCheck(Graph<Person, Connection> g, Person[] people, Connection[] connections) {
         int T = SimulationSettings.getInstance().getT();
         int ySpan = SimulationSettings.getInstance().getYspan();
-        for (Person person:g.getVertices()) {
-            if ((person.getNumberOfExposures() >= T) && (random.nextInt(ySpan) < person.getY())) {
+        for (Person person:this.nonAdopters) {
+            if ((person.getNumberOfExposures() >= T) && (this.random.nextInt(ySpan) < person.getY())) {
+                this.tempAdopters.add(person);
                 person.setTempValue(true);
             }
         }
-        for (Person person:g.getVertices()) {
+        for (Person person:this.tempAdopters) {
             if (person.getTempValue()) {
                 person.setTempValue(false);
                 this.setAdoption(person);
                 this.assignCauseOfAdoption(person);
             }
         }
+        this.tempAdopters.clear();
     }
 
     private void setAdoption(Person person) {
         if (this.opinionIsSpreading ) {
             if (person.getAdopted() == true) return;
             person.setAdopted(true);
+            this.nonAdopters.remove(person);
+            this.adopters.add(person);
             this.numberOfAdopters++;
         }
     }
@@ -208,6 +212,12 @@ public class Simulation {
     }
 
     public void generateControlGraph(Graph<Person, Connection> assortedGraph) {
+        this.numberOfAdopters = 0;
+        this.socialTimestep = 0;
+        this.nonAdopters.clear();
+        this.tempAdopters.clear();
+        this.adopters.clear();
+
         this.randomG = new SparseGraph<Person, Connection>();
         for (Person person:assortedG.getVertices()) {
             this.randomG.addVertex(person);
@@ -218,6 +228,7 @@ public class Simulation {
         int counter = 0;
         this.randomPeople = new Person[SimulationSettings.getInstance().getNumberOfPeople()];
         for (Person person:this.randomG.getVertices()) {
+            this.nonAdopters.add(person);
             person.setAdopted(false);
             person.resetExposures();
             person.resetY(this.random.nextInt(SimulationSettings.getInstance().getYspan()));
@@ -230,14 +241,5 @@ public class Simulation {
             this.randomConnections[counter] = connection;
             counter++;
         }
-        this.resetSimulation();
     }
-
-    public void resetSimulation() {
-        this.numberOfAdopters = 0;
-        this.socialTimestep = 0;
-    }
-
-
-
 }
