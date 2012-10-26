@@ -7,6 +7,8 @@ public class Connection {
     private Person destination;
     private int id;
 
+    
+
     public Connection(int id, Person source, Person destination) {
         this.id = id;
         this.destination = destination;
@@ -46,6 +48,8 @@ public class Connection {
     public Person getSource() {
         return this.source;
     }
+
+
 
 
 }

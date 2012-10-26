@@ -8,13 +8,20 @@ public class Person {
     private int y;
     private boolean tempValue = false;
     private boolean adopted;
+    private int adoptionCause;
     private ArrayList<Integer> exposures;
     private ArrayList<Integer> exposureTimestamps;
+    public static final int NONE = 1 ;
+    public static final int SOCIAL = 2;
+    public static final int GEN_FIRST = 3;
+    public static final int SOC_FIRST = 4;
+    public static final int GENERAL = 5 ;
 
     public Person(String id, int y) {
         this.id = id;
         this.y = y;
         this.adopted = false;
+        this.adoptionCause = Person.NONE;
         this.exposures = new ArrayList<Integer>();
         this.exposureTimestamps = new ArrayList<Integer>();
     }
@@ -81,5 +88,33 @@ public class Person {
 
     public boolean getTempValue() {
         return this.tempValue;
+    }
+
+    public void setAdoptionCause(int adoptionCause) {
+        this.adoptionCause = adoptionCause;
+    }
+
+    public int getAdoptionCause() {
+        return this.adoptionCause;
+    }
+
+    public boolean isNONE() {
+        return this.adoptionCause==Person.NONE;
+    }
+
+    public boolean isSOCIAL() {
+        return this.adoptionCause==Person.SOCIAL;
+    }
+
+    public boolean isGENERAL() {
+        return this.adoptionCause==Person.GENERAL;
+    }
+
+    public boolean isGEN_FIRST() {
+        return this.adoptionCause==Person.GEN_FIRST;
+    }
+
+    public boolean isSOC_FIRST() {
+        return this.adoptionCause==Person.SOC_FIRST;
     }
 }
